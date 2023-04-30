@@ -44,7 +44,7 @@ class SaleController extends Controller
                     // optional button to display
                     $buttons=[auth()->user()->is_admin()?'delete':'','report'];
                     //url for view pdf report
-                    $reporturl='report/'.($status=='active'?'bill':'invoice').'-sale/'.$id;
+                    $reporturl=route('report.document',['table'=>'sale','id'=>$id,'document'=>$status=='active'?'bill':'invoice']);
                     //render action button from view
                     $actionBtn = view('control-buttons',compact('buttons','id','status','prefix','extratext','statusbutton','status_class','reporturl'))->render();
                     return $actionBtn;
@@ -81,31 +81,57 @@ class SaleController extends Controller
             'sale_date' => ['required', 'date','before:tomorrow'],
             'payment_status'=>['required'],
         ]);
-        $sales=Sale::create($request->all());
+
+        DB::beginTransaction();
+
+        try {
+
 			$totalAmount = 0;
             $totalTax = 0;
             $productSales = [];
+            $total_quantities=[];
             foreach ($request->product_id as $index => $productId)
             {
-                $product =Product::find($productId);
                 $quantity = $request->quantity[$index];
+                if(!isset($total_quantities[$productId]))
+                    $total_quantities[$productId]=0;
+                $total_quantities[$productId]+=$quantity;
+            }
+            foreach ($total_quantities as $productId=>$quantity)
+            {
+                $product =Product::find($productId);
                 $price = $product->product_base_price;
                 $tax = $product->product_tax;
                 $basePrice = $price * $quantity;
                 $taxAmount = ($basePrice / 100) * $tax;
                 $totalTax += $taxAmount;
                 $totalAmount += $basePrice;
-                $productSales[]=	['sale_id'=>$sales->sale_id,
+                $productSales[]=[
                 'product_id'=>$productId,
                 'quantity'=> $quantity,
                 'price'=>$price,
                 'tax'=>	$taxAmount ];
                 Product::find($productId)->decrement('product_quantity', $quantity);
             }
+
+            $extra_fields=[
+                'sale_sub_total' => $totalAmount,
+                'sale_tax'=>$totalTax
+            ];
+            $sales=Sale::create($request->all()+$extra_fields);
+
+            foreach ($productSales as $index => $productSale)
+            {
+                $productSales[$index]['sale_id']=$sales->sale_id;
+            }
             // batch insert instead of individual insert in loop is more effecient
             ProductSale::insert($productSales);
-			$value=array("sale_sub_total"=>$totalAmount,"sale_tax"=>$totalTax);
-            $sales->update($value);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Handle the exception and return an error response
+            return response()->json(['error'=>__('message.error.create',['reason'=>$e->getMessage()])]);
+        }
             return response()->json(['response'=>__('message.create',['name'=>'Sales'])]);
     }
 
@@ -129,8 +155,8 @@ class SaleController extends Controller
     public function show()
     {
         // Generate a list of products as a Select object and return it as a JSON response
-        $product_list=Select::instance()->product_list();
-        return response()->json($product_list);
+        $product=Select::instance()->product_list();
+        return response()->json(compact('product'));
     }
 
 
@@ -200,50 +226,84 @@ class SaleController extends Controller
                 'sale_date' => ['required', 'date','before:tomorrow'],
                 'payment_status'=>['required'],
             ]);
-            // Delete existing product sales relation
-            $sales->product_sales->each->delete();
 
-            // Update product quantity for previously sold products
-            foreach($request->hidden_product_id as $key => $productId){
-                $productDetails = Product::find($productId);
-                if($productDetails){
-                    $quantity = $request->hidden_quantity[$key];
+            DB::beginTransaction();
 
-                    // sales return increases available quantity so update it
-                    $productDetails->increment('product_quantity', $quantity);
+            try {
+                $sale_id=$sales->sale_id;
+
+                $old_sales=ProductSale::where('sale_id',$sale_id)
+                            ->get();
+
+                $old_products=$old_sales->pluck('product_id');
+                $new_products=$request->product_id;
+                $deleted_products=$old_products->diff($new_products);
+                // Delete product purchases for deleted products
+                if ($deleted_products) {
+                        ProductSale::where('sale_id', $sale_id)
+                            ->whereIn('product_id', $deleted_products)
+                            ->delete();
                 }
-            }
 
-            $totalAmount = 0;
-            $totalTax = 0;
-            $productSales = [];
+                // Update product quantity for previously purchased products
+                foreach ($old_sales as $old_sale) {
+                    $previous_quantity = $old_sale->quantity;
+                    $product_id=$old_sale->product_id;
+                    $product_details = Product::find($product_id);
+                    if ($product_details) {
+                        //sales return increases available quantity so update it
+                        $product_details->increment('product_quantity', $previous_quantity);
+                    }
+                }
+                $total_quantities=[];
+                foreach ($request->product_id as $index => $productId)
+                {
+                    $quantity = $request->quantity[$index];
+                    if(!isset($total_quantities[$productId]))
+                    $total_quantities[$productId]=0;
+                    $total_quantities[$productId]+=$quantity;
+                }
 
-            // Create new product sales
-            foreach ($request->product_id as $index => $productId)
-            {
-                $product =Product::find($productId);
-                $quantity = $request->quantity[$index];
-                $price = $product->product_base_price;
-                $tax = $product->product_tax;
-                $basePrice = $price * $quantity;
-                $taxAmount = ($basePrice / 100) * $tax;
-                $totalTax += $taxAmount;
-                $totalAmount += $basePrice;
-                $productSales []=  [
-                                    'sale_id'=>$sales->sale_id,
-                                    'product_id'=>$productId,
-                                    'quantity'=> $quantity,
-                                    'price'=>$price,
-                                    'tax'=>	$taxAmount
-                                  ];
-                $product->decrement('product_quantity', $quantity);
+                $totalAmount = 0;
+                $totalTax = 0;
+                $productSales = [];
+
+                // Create new product sales
+                foreach ($total_quantities as $productId=>$quantity)
+                {
+                    $product =Product::find($productId);
+                    $price = $product->product_base_price;
+                    $tax = $product->product_tax;
+                    $basePrice = $price * $quantity;
+                    $taxAmount = ($basePrice / 100) * $tax;
+                    $totalTax += $taxAmount;
+                    $totalAmount += $basePrice;
+                    $productSales []=  [
+                                        'sale_id'=>$sales->sale_id,
+                                        'product_id'=>$productId,
+                                        'quantity'=> $quantity,
+                                        'price'=>$price,
+                                        'tax'=>	$taxAmount
+                                    ];
+                    $product->decrement('product_quantity', $quantity);
+                }
+
+                foreach($productSales as $index=>$productSale){
+                    $product_id=$productSale['product_id'];
+                    ProductSale::updateOrCreate(
+                        ['sale_id' => $sale_id,'product_id'=>$product_id], // attributes to search for
+                        $productSale // attributes to update or create
+                    );
+                }
+                    $value=["sale_sub_total"=>$totalAmount,"sale_tax"=>$totalTax];
+                    DB::commit();
             }
-            // create pivot table with batch insert instead of individual insert in loop
-            // since it  is more effecient
-            ProductSale::insert($productSales);
-                $value=["sale_sub_total"=>$totalAmount,"sale_tax"=>$totalTax];
+            catch (\Exception $e) {
+                DB::rollBack();
+                // Handle the exception and return an error response
+                return response()->json(['error'=>__('message.error.update',['reason'=>$e->getMessage()])]);
             }
-            // Update sales data
+        }      // Update sales data
             $sales->update(array_merge($request->all(),$value));
 
             // Return JSON response with success message
@@ -251,15 +311,32 @@ class SaleController extends Controller
     }
 
 
-  public function destroy(Sale $sales)
+
+
+
+    public function destroy(Sale $sales)
     {
-         // start a database transaction
+        // start a database transaction
         //  to ensure either all database changes are made or none of them.
         DB::beginTransaction();
 
         try {
+            $sale_id=$sales->sale_id;
+            $old_sales=ProductSale::where('sale_id',$sale_id)->get();
+
+            // Update product quantity for previously sold products
+            foreach ($old_sales as $old_sale) {
+                $previous_quantity = $old_sale->quantity;
+                $product_id=$old_sale->product_id;
+                $product_details = Product::find($product_id);
+                if ($product_details) {
+                    //sales return increases available quantity so update it
+                    $product_details->increment('product_quantity', $previous_quantity);
+                }
+            }
+
             //delete related product_sales first to avoid foreign id constraints error
-            $sales->product_sales->each->delete();
+            $sales->product_sales()->delete();
             $sales->delete();
 
             // Commit the transaction if everything is good
@@ -267,8 +344,8 @@ class SaleController extends Controller
             return response()->json(['response'=>__('message.delete',['name'=>'Sales'])]);
         } catch (\Exception $e) {
             DB::rollBack();
-              // Handle the exception and return an error response
-              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);
+            // Handle the exception and return an error response
+            return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);
         }
     }
 }

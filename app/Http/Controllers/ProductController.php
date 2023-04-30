@@ -81,10 +81,10 @@ class ProductController extends Controller
 
     public function create()
     {
-        $brands=Brand::all();
+        $brand=Brand::all();
         //create required select list for the tax
-        $taxlist=Select::instance()->tax_list();
-        return response()->json(compact('taxlist','brands'));
+        $tax=Select::instance()->tax_list();
+        return response()->json(compact('tax','brand'));
     }
 
     /**
@@ -106,41 +106,48 @@ class ProductController extends Controller
         // Initialize the total tax percentage to 0
         $total_tax = 0;
 
-        // Extract the tax IDs from the request data
-        $taxIds = $request->tax; // Array of tax_id values
+        DB::beginTransaction();
 
-        // If tax IDs are present in the request data, calculate the total tax percentage
-        if ($request->has('tax')) {
-            // Calculate total tax percentage
-            $total_tax = Tax::whereIn('tax_id', $taxIds)->sum('tax_percentage');
+        try {
+                // If tax IDs are present in the request data, calculate the total tax percentage
+                if ($request->has('tax')) {
+                    // Extract the tax IDs from the request data
+                    $taxIds = $request->tax; // Array of tax_id values
+                    // Calculate total tax percentage
+                    $total_tax = Tax::whereIn('tax_id', $taxIds)->sum('tax_percentage');
+                }
+
+                // Add the total tax percentage to the mergable data
+                $this->fields['product_tax']=$total_tax;
+
+                if($request->hasFile('product_image')){
+                    // If a product image file is uploaded, store it and add its filename to the mergable data
+                    $filename=$request->file('product_image')->store('public/product_images');
+                    $this->fields['product_image']=basename($filename);
+                }
+
+                // Create a new product and merge the request data with additional fields
+                $created_product=Product::create(array_merge($request->all(), $this->fields));
+
+                // Initialize an empty array to hold product tax data
+                $productTaxes = [];
+
+                // For each tax ID, add a new entry to the productTaxes array
+                foreach ($taxIds as $taxId) {
+                    $productTaxes[] = [
+                                        'product_id' => $created_product->product_id,
+                                        'tax_id' => $taxId,
+                                    ];
+                }
+
+            // Insert the product tax data into the pivot table in a batch insert operation
+            ProductTax::insert($productTaxes);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Handle the exception and return an error response
+            return response()->json(['error'=>__('message.error.create',['reason'=>$e->getMessage()])]);
         }
-
-         // Add the total tax percentage to the mergable data
-        $this->fields['product_tax']=$total_tax;
-
-        if($request->hasFile('product_image')){
-            // If a product image file is uploaded, store it and add its filename to the mergable data
-            $filename=$request->file('product_image')->store('public/product_images');
-            $this->fields['product_image']=basename($filename);
-        }
-
-        // Create a new product and merge the request data with additional fields
-        $created_product=Product::create(array_merge($request->all(), $this->fields));
-
-        // Initialize an empty array to hold product tax data
-        $productTaxes = [];
-
-        // For each tax ID, add a new entry to the productTaxes array
-        foreach ($taxIds as $taxId) {
-            $productTaxes[] = [
-                                'product_id' => $created_product->product_id,
-                                'tax_id' => $taxId,
-                              ];
-        }
-
-        // Insert the product tax data into the pivot table in a batch insert operation
-        ProductTax::insert($productTaxes);
-
         // Return a success response
         return response()->json(['response'=>__('message.create',['name'=>'product Details'])]);
     }
@@ -239,23 +246,34 @@ class ProductController extends Controller
                 'tax'=>['required','exclude_unless:product_tax,null'],
             ]);
         }
-        $total_tax =$request->product_tax;
-        if ($request->has('tax')) {
-            // Remove existing relations of pivot table
-            $product->taxes()->detach();
-            // Array of tax_id values
-            $taxIds = $request->tax;
-            // Update pivot table with new tax_id values
-            $product->taxes()->sync($taxIds);
-            // Calculate total tax
-            $total_tax = Tax::whereIn('tax_id', $taxIds)->sum('tax_percentage');
-            $this->fields['product_tax']=$total_tax;
-        }
+        DB::beginTransaction();
 
-        if($request->hasFile('product_image')){
-            // If a product image file is uploaded, store it and add its filename to the mergable data
-            $filename=$request->file('product_image')->store('public/product_images');
-            $this->fields['product_image']=basename($filename);
+        try {
+            $total_tax =$request->product_tax;
+            if ($request->has('tax')) {
+                $old_tax=$product->taxes()->pluck('tax_id');
+                // Array of tax_id values
+                $new_tax = $request->tax;
+                $deleted_tax=$old_tax->diff($new_tax);
+                // Remove existing relations of pivot table
+                $product->taxes()->detach($deleted_tax);
+
+                // Update pivot table with new tax_id values
+                $product->taxes()->sync($new_tax);
+                // Calculate total tax
+                $total_tax = Tax::whereIn('tax_id', $new_tax)->sum('tax_percentage');
+                $this->fields['product_tax']=$total_tax;
+            }
+            if($request->hasFile('product_image')){
+                // If a product image file is uploaded, store it and add its filename to the mergable data
+                $filename=$request->file('product_image')->store('public/product_images');
+                $this->fields['product_image']=basename($filename);
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Handle the exception and return an error response
+            return response()->json(['error'=>__('message.error.update',['reason'=>$e->getMessage()])]);
         }
         $product->update(array_merge($request->all(), $this->fields));
         return response()->json(['response'=>__('message.update',['name'=>'product Details'])]);
@@ -271,7 +289,7 @@ class ProductController extends Controller
 
         try {
             //delete related product taxes first to avoid foreign id constraints error
-            $product->product_taxes->each->delete();
+            $product->product_taxes()->delete();
             $product->delete();
 
             // Commit the transaction if everything is good

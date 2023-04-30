@@ -131,7 +131,14 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        $user->delete();
-        return response()->json(['response'=>__('message.delete',['name'=>'user'])]);
+        if(!$user->is_admin()){
+            $user->delete();
+            return response()->json(['response'=>__('message.delete',['name'=>'user'])]);
+        }
+        else{
+            return response()->json(['error'=>__('message.error.admin_user')]);
+
+        }
+
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class CategoryController extends Controller
 {
     public $companyInfo=[];
-    
+
 
     public function __construct(Request $request)
     {
@@ -60,7 +60,7 @@ class CategoryController extends Controller
             'category_name' => ['required', 'string', 'max:255','unique:categories'],
         ]);
         Category::create($request->all());
-        return response()->json(['response'=>__('message.create',['name'=>'category'])]);       
+        return response()->json(['response'=>__('message.create',['name'=>'category'])]);
     }
 
     public function edit(Category $category)
@@ -76,37 +76,37 @@ class CategoryController extends Controller
             ]);
         }
         $category->update($request->all());
-        return response()->json(['response'=>__('message.update',['name'=>'category'])]);   
+        return response()->json(['response'=>__('message.update',['name'=>'category'])]);
     }
 
 
     /**
      * Deletes a category and its related brands from the database.
-     * 
+     *
      * @param Category $category The category to delete.
      * @return Illuminate\Http\JsonResponse A JSON response indicating whether the delete was successful or not.
      */
 
     public function destroy(Category $category)
     {
-        // start a database transaction 
+        // start a database transaction
         //  to ensure either all database changes are made or none of them.
          DB::beginTransaction();
 
         try {
             //delete related brands to avoid foreign id constraints
-            $category->brands->each->delete();
+            $category->brands()->delete();
             // Delete the category
             $category->delete();
             // Commit the transaction if everything is good
             DB::commit();
             // Return a success response
-            return response()->json(['response'=>__('message.delete',['name'=>'product'])]);            
+            return response()->json(['response'=>__('message.delete',['name'=>'product'])]);
         } catch (\Exception $e) {
             // Roll back the transaction if error occurs
             DB::rollBack();
               // Handle the exception and return an error response
-              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);           
+              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);
         }
     }
 }

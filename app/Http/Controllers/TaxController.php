@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class TaxController extends Controller
 {
     public $companyInfo=[];
-    
+
 
     public function __construct(Request $request)
     {
@@ -39,14 +39,14 @@ class TaxController extends Controller
                 $status_class=$status=="active"?"warning":"success";
                 // optional button to display
                 $buttons=['delete'];
-                //render action button from view 
+                //render action button from view
                 $actionBtn = view('control-buttons',compact('buttons','id','status','prefix','statusbutton','status_class'))->render();
                 return $actionBtn;
                 })
                 ->editColumn('tax_status', function ($data) {
                     $status =$data->tax_status;
                     $class=$status == 'active'?'success':'danger';
-                    //render status with css from view 
+                    //render status with css from view
                     return view('badge',compact('status','class'))->render();
                 })
                 ->make(true);
@@ -85,22 +85,22 @@ class TaxController extends Controller
 
   public function destroy(Request $request,Tax $tax)
     {
-        // start a database transaction 
+        // start a database transaction
         //  to ensure either all database changes are made or none of them.
         DB::beginTransaction();
 
         try {
             //delete related product taxes first to avoid foreign id constraints error
-            $tax->tax_product->each->delete();
-            $tax->delete();      
-            
-            // Commit the transaction if everything is good      
+            $tax->tax_product()->delete();
+            $tax->delete();
+
+            // Commit the transaction if everything is good
             DB::commit();
-            return response()->json(['response'=>__('message.delete',['name'=>'tax'])]);           
+            return response()->json(['response'=>__('message.delete',['name'=>'tax'])]);
         } catch (\Exception $e) {
             DB::rollBack();
               // Handle the exception and return an error response
-              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);           
+              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);
         }
     }
 }
