@@ -94,7 +94,7 @@
 @include('layouts.footer')
 <script>
 function update(data){
-    $('#message').html('<div class="alert alert-success">Login success. Redirecting.......</div>');
+    showMessage('Login success. Redirecting.......','success')
     enableButton(true);
     window.location.assign('.'+data.response);
 }

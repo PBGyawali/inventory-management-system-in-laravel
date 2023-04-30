@@ -5,7 +5,11 @@
 		<div class="col-lg-12">
 			<div class="card card-secondary">
                 <div class="card-header">
-					@include('header_card',['element' =>'sales','extratext'=>'order','reporturl'=>route('report'),'table'=>'sale'])
+					@include('header_card',['element' =>'sales','extratext'=>'order',
+                    'reporturl'=>route('report.order',['table'=>'sale','from_date'=>':from_date','to_date'=>':to_date']),
+                    'exporturl'=>route('report.csv',['table'=>'sale','from_date'=>':from_date','to_date'=>':to_date']),
+
+                    ])
                 </div>
 				<div class="card-body">
 					<table id="table" class="table table-bordered table-striped ">
@@ -81,42 +85,6 @@
 	@include('page-footer',['company_name'=>$info->company_name])
     @include('layouts.footer')
     <script type="text/javascript">
-		$.ajax({
-			'type': "POST",
-			'dataType': 'json',
-			'url': listurl,
-			'data': {
-						product_status:'active'
-					},
-			'success': function(data){
-				list(data);
-			},
-			});
-
-
-		function add_row(count = '')
-		{
-			var html = '';
-			html += '<span class="item_details " id="row'+count+'">';
-			html += '<div class="row" id="item_details_row'+count+'">';
-			html += '<div class="col-md-8">';
-			html += '<select name="product_id[]" id="product_id'+count+'" class="form-control selectpicker" data-live-search="true" required>';
-			html += product_list;
-			html += '</select>';
-			html += '</div>';
-			html += '<div class="col-md-3 px-0">';
-			html += '<input type="number" name="quantity[]" id="quantity'+count+'"  min="1" max="" class="form-control" required />';
-			html += '</div>';
-			html += '<div class="col-md-1 pl-0">';
-			if(count == '')
-				html += '<button type="button" name="add_more" id="add_more" class="btn btn-success">+</button>';
-			else
-				html += '<button type="button" name="remove" id="'+count+'" class="btn btn-danger remove">-</button>';
-			html += '</div>';
-			html += '</div></div></span>';
-			$('#span_item_details').append(html);
-		}
-
         function update(data){
             $('#sale_name').val(data.sale_name);
             $('#sale_date').val(data.sale_date);

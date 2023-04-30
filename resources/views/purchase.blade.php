@@ -6,7 +6,10 @@
 
 			<div class="card card-secondary">
                 <div class="card-header">
-					@include('header_card',['element' =>'purchase','extratext'=>'order','reporturl'=>route('report')])
+					@include('header_card',['element' =>'purchase','extratext'=>'order',
+                   'reporturl'=>route('report.order',['table'=>'purchase','from_date'=>':from_date','to_date'=>':to_date']),
+                    'exporturl'=>route('report.csv',['table'=>'purchase','from_date'=>':from_date','to_date'=>':to_date']),
+                    ])
                 </div>
                 <div class="card-body">
                 	<table id="table" class="table table-bordered table-striped">
@@ -84,43 +87,6 @@
 	@include('page-footer',['company_name'=>$info->company_name])
     @include('layouts.footer')
     <script type="text/javascript">
-			$.ajax({
-			'type': "POST",
-			'dataType': 'json',
-			'url': listurl,
-			'data':{status:'active'},
-			'success': function(data){	list(data);	},
-			});
-
-		function add_row(count = '')
-		{		
-			// create a template string with the HTML elements
-			const template = `
-				<span class="item_details" id="row${count}">
-				<div class="row" id="item_details_row${count}">
-					<div class="col-md-8">
-					<select name="product_id[]" id="purchase_id${count}" class="form-control" data-live-search="true" required>
-						${product_list}
-					</select>
-					</div>
-					<div class="col-md-3 px-0">
-					<input type="number" name="quantity[]" class="form-control" required />
-					</div>
-					<div class="col-md-1 pl-0">
-					<button type="button"  
-							id="${count ? count : 'add_more'}" 
-							class="btn ${count ? 'btn-danger remove' : 'btn-success'}">
-						${count ? '-' : '+'}
-					</button>
-					</div>
-				</div>
-				</span>
-			`;
-			
-			// append the template to the DOM
-			$('#span_item_details').append(template);
-		}
-
         function update(data){
             $('#purchase_name').val(data.purchase_name);
             $('#purchase_date').val(data.purchase_date);

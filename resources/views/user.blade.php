@@ -52,17 +52,17 @@
 						<div class="form-group">
 							<label>Select User Type</label>
 							<select name="user_type" id="user_type" class="form-control">
-								<option value="user">User</option>								
+								<option value="user">User</option>
 								<option value="admin">Admin</option>
 								<option value="owner">Owner</option>
 								@if (auth()->user()->is_master())
 									<option value="master">Master</option>
 								@endif
-								
+
 							</select>
 						</div>
 						@endif
-						
+
         			</div>
         			<div class="modal-footer">
         				<button type="submit"  id="submit_button" class="btn btn-success">Add</button>
@@ -79,6 +79,7 @@
     function update(data){
 				$('#user_name').val(data.username);
 				$('#user_email').val(data.email);
+                $('#user_type').val(data.user_type);
 			}
 </script>
 

@@ -72,6 +72,7 @@
 								</div>
 					          	<br />
 					          	<div class="form-group text-center">
+                                    <input type="hidden" id="user_id"  value="{{ auth()->id() }}" class=" ml-1 file_upload"/>
 					          		<button type="submit" name="update_profile" id="submit_button" class="btn btn-success"><i class="fas fa-lock"></i> Change</button>
 					          	</div>
 	            			</form>

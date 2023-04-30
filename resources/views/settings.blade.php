@@ -6,7 +6,7 @@ if(isset($setuppage)||session()->has('setup')){
 }
 ?>
         <!-- Page Heading -->
-        <h1 class="h3 mb-4 text-gray-800"><?php echo ($setup)?'System Configuration':'Setting'?></h1>
+        <h1 class="h3 mb-4 ml-3 text-gray-800"><?php echo ($setup)?'System Configuration':'Setting'?></h1>
         @include('components.message')
         <form method="post" class="form" id="form" class="form" enctype="multipart/form-data" action="<?= ($setup)?route('settings_store'):route('settings_update')?>">
             <div class="card shadow mb-4">

@@ -79,7 +79,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Enter Product Tax (%)</label>
-                                <input type="text" name="product_tax" id="product_tax" class="form-control" style="display:none" required pattern="[+-]?([0-9]*[.])?[0-9]+" />
+                                {{-- <input type="text" name="product_tax" id="product_tax" class="form-control" style="display:none" required pattern="[+-]?([0-9]*[.])?[0-9]+" /> --}}
                                 <span id="span_item_details"></span>
                             </div>
                         </div>
@@ -95,41 +95,10 @@
         @include('page-footer',['company_name'=>$info->company_name])
         @include('layouts.footer')
 <script>
-
-    $.ajax({
-            'type': "POST",
-            'dataType': 'json',
-            'url': listurl,
-            'success': function(data){
-                calllist(data.taxlist,data.brands);
-            },
-        });
-
-
-        function add_row(count = '') {
-            const html = `
-                <span id="item_details_row${count}" class="item_details">
-                <div class="row">
-                    <div class="col-md-11 pr-0">
-                    <select name="tax[]" id="tax${count}" class="form-control" data-live-search="true" required>
-                        ${tax_list}
-                    </select>
-                    <input type="hidden" name="hidden_tax[]" id="hidden_product_id${count}" />
-                    </div>
-                    <div class="col-md-1 pl-0">
-                    ${count === '' ? '<button type="button"  id="add_more" class="btn btn-success">+</button>' : `<button type="button" id="${count}" class="btn btn-danger remove">-</button>`}
-                    </div>
-                </div>
-                </span>`;
-            $('#span_item_details').append(html);
-            }
-
-
-
     function update(data){
         $('#span_item_details').html('');
         $('#category_id').val(data.category_id);
-        let select=brand(data.category_id)
+        let select=findList(data.category_id)
         $('#brand_id').html(select);
         $('#brand_id').val(data.brand_id);
         $('#product_name').val(data.product_name);
@@ -137,7 +106,6 @@
         $('#product_quantity').val(data.opening_stock);
         $('#product_product').val(data.product_product);
         $('#product_base_price').val(data.product_base_price);
-        $('#product_tax').val(data.product_tax);
         $('#product_unit').val(data.product_unit);
         $('#span_item_details').html(data.item_details);
     }
