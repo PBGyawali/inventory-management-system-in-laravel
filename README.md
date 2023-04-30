@@ -1,4 +1,4 @@
-Inventory management system in Laravel
+#Inventory management system in Laravel
 
 S.no	Features
 1.		handle lifo, fifo or average mean method
