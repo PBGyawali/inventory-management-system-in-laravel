@@ -7,6 +7,8 @@
                 </script>
             </span>
         </div>
-        <a class="no-border fixed-bottom text-right size-30 scroll-to-top" data-href="#page-top"><i class="fas  fa-4x fa-angle-up"></i></a>
+        <a class="no-border fixed-bottom text-right size-30 scroll-to-top" data-href="#page-top">
+            <i class="fas  fa-4x fa-angle-up"></i>
+        </a>
     </div>
 </footer>
