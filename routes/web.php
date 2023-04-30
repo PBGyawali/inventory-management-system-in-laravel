@@ -59,8 +59,9 @@ Route::middleware(['auth'])->group(function(){
 
         Route::group(['prefix' => 'report'], function () {
             Route::match(['get','post'],'/',[ReportController::class, 'index'])->name('report');
-            Route::match(['get','post'],'/{document}-{table}/{id}',[ReportController::class,'create']);
-            Route::match(['get','post'],'/{from_date}/{to_date}/{table}',[ReportController::class,'show']);
+            Route::match(['get','post'],'/{table}/csv/{from_date}/{to_date}',[ReportController::class,'downloadCSV'])->name('report.csv');
+            Route::match(['get','post'],'/{document}-{table}/{id}',[ReportController::class,'create'])->name('report.document');
+            Route::match(['get','post'],'/{from_date}/{to_date}/{table}',[ReportController::class,'show'])->name('report.order');
 
         });
 
