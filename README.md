@@ -1,6 +1,6 @@
 ## About Inventory management system in Laravel
 
-S.no	Features
+### S.no	### Features
 1.		handle lifo, fifo or average mean method
 2.		handle sales return and purchases return
 3.		profile picture live update without page reload	
