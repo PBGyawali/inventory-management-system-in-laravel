@@ -43,15 +43,18 @@
 							<label>Select User Type</label>
 							<select name="user_type" id="user_type" class="form-control">
 								<option value="user">User</option>
+								<option value="user">User</option>
 								<option value="admin">Admin</option>
 								<option value="owner">Owner</option>
 								@if (auth()->user()->is_master())
 									<option value="master">Master</option>
 								@endif
 
+
 							</select>
 						</div>
 						@endif
+
 
         			</div>
         			<div class="modal-footer">

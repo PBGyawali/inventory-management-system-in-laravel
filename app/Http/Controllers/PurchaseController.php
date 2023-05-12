@@ -154,6 +154,55 @@ class PurchaseController extends Controller
             // Handle the exception and return an error response
             return response()->json(['error'=>__('message.error.create',['reason'=>$e->getMessage()])]);
         }
+            $total_quantities=[];
+            foreach ($request->product_id as $index => $productId)
+            {
+                $quantity = $request->quantity[$index];
+                if(!isset($total_quantities[$productId]))
+                    $total_quantities[$productId]=0;
+                $total_quantities[$productId]+=$quantity;
+            }
+
+            // Loop through each product in the request data and calculate its base price and tax amount
+            foreach ($total_quantities as $productId=>$quantity)
+            {
+                // Get the product details from the database
+                $product =Product::find($productId);
+                $price = $product->product_base_price;
+                $taxPercentage = $product->product_tax;
+                $basePrice = $price * $quantity;
+                $taxAmount = ($basePrice / 100) * $taxPercentage;
+                $totalTax += $taxAmount;
+                $totalAmount += $basePrice;
+                // Add the product purchase record to the list of product purchases for the Purchase
+                $productPurchases[] = [
+                                        'product_id' => $productId,
+                                        'quantity' => $quantity,
+                                        'price' => $price,
+                                        'tax' => $taxAmount
+                                    ];
+                // Increment the product quantity in the database by the quantity purchased
+                $product->increment('product_quantity', $quantity);
+            }
+            $extra_fields=[
+                'purchase_sub_total' => $totalAmount,
+                'purchase_tax'=>$totalTax
+            ];
+
+            $purchase=Purchase::create($request->all()+$extra_fields);
+            foreach ($productPurchases as $index => $productPurchase)
+            {
+                $productPurchases[$index]['purchase_id']=$purchase->purchase_id;
+            }
+
+            // batch insert instead of individual insert in loop is more effecient
+            ProductPurchase::insert($productPurchases);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Handle the exception and return an error response
+            return response()->json(['error'=>__('message.error.create',['reason'=>$e->getMessage()])]);
+        }
         return response()->json(['response'=>__('message.create',['name'=>'purchase'])]);
     }
 

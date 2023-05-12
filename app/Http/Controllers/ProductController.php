@@ -85,6 +85,7 @@ class ProductController extends Controller
 
     public function create()
     {
+     
         $brand=Brand::all();
         //create required select list for the tax
         $tax=Select::instance()->tax_list();
@@ -111,6 +112,7 @@ class ProductController extends Controller
         $total_tax = 0;
 
         DB::beginTransaction();
+
 
         try {
                 // If tax IDs are present in the request data, calculate the total tax percentage
