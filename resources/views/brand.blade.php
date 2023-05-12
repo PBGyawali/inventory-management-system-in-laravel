@@ -7,17 +7,7 @@
 					@include('header_card',['element' =>'brand','noreport'=>true])
                 </div>
                 <div class="card-body">
-                	<table id="table" class="table table-bordered table-striped">
-                		<thead>
-							<tr>
-								<th class="brand_id">ID</th>
-								<th class="category.category_name">Category</th>
-								<th class="brand_name">Brand Name</th>
-								<th class="brand_status">Status</th>
-								<th class="action">Action</th>
-							</tr>
-						</thead>
-                	</table>
+                    @include("table",['headers'=>['brand_id',"category.category_name","brand_name","brand_status"]])
                 </div>
             </div>
         </div>
@@ -26,6 +16,7 @@
     <div id="Modal" class="modal fade" data-backdrop="static">
     	<div class="modal-dialog">
     		<form method="post" id="form" class="form" action="<?php echo route('brand')?>">
+                @csrf
     			<div class="modal-content">
     				<div class="modal-header">
 						<h4 class="modal-title"><i class="fa fa-plus"></i> Add Brand</h4>
@@ -58,13 +49,5 @@
     	</div>
     </div>
 	@include('page-footer',['company_name'=>$info->company_name])
-    @include('layouts.footer')
-<script>
-    function update(data){
-        $('#category_id').val(data.category_id);
-        $('#brand_name').val(data.brand_name);
-    }
-
-</script>
-
+    @include('layouts.footer_script')
 

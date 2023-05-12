@@ -1,6 +1,3 @@
-<?php $website=(isset($info)?$info->company_name:'');
-		$pagetitle=((isset($page)&& $page=='welcome')?'WELCOME TO':'')
-?>
         <!DOCTYPE html>
         <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 		<head>
@@ -18,8 +15,10 @@
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 		<script type="text/javascript" src="<?php echo env('JS_URL')?>datatables.min.js"></script>
 		<script type="text/javascript" src="<?php echo env('JS_URL')?>dataTables.responsive.min.js"></script>
-		<link rel="stylesheet" href="<?php echo env('CSS_URL')?>datatables.min.css" >
+        <link href="<?php echo env('CSS_URL')?>datatables.min.css" rel="stylesheet"/>
 		<link rel="stylesheet" href="<?php echo env('CSS_URL').'parsley.css'?>" >
 		<script type="text/javascript" src="<?php echo env('JS_URL').'parsley.min.js'?>"></script>
-		<title><?php echo $pagetitle.ucwords(isset($page)?$page.' ':'').$website.' '.strtoupper(env('APP_NAME'))?></title>
+        <script type="text/javascript" src="<?php echo env('JS_URL').'app.js'?>"></script>
+		<title><?php echo ucwords($page??'').' '.($website??'').' '.strtoupper(config('app.name'))?></title>
+		<link href="https://cdn.datatables.net/v/bs5/dt-1.13.4/r-2.4.1/datatables.min.css" rel="stylesheet"/>
         @include('layouts.sidebar')

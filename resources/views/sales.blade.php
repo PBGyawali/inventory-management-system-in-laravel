@@ -5,34 +5,44 @@
 		<div class="col-lg-12">
 			<div class="card card-secondary">
                 <div class="card-header">
-					@include('header_card',['element' =>'sales','extratext'=>'order','reporturl'=>route('report'),'table'=>'sale'])
+					@include('header_card',['element' =>'sales','extratext'=>'order',
+                    'reporturl'=>auth()->user()->is_admin()?route('report.order',['table'=>'sale','from_date'=>':from_date','to_date'=>':to_date']):null,
+                    'exporturl'=>auth()->user()->is_admin()?route('report.csv',['table'=>'sale','from_date'=>':from_date','to_date'=>':to_date']):null,
+
+                    ])
                 </div>
 				<div class="card-body">
-					<table id="table" class="table table-bordered table-striped ">
-						<thead>
-							<tr>
-								<th class="sale_id">Sales ID</th>
-								<th class="sale_name">Customer Name</th>
-								<th class="total">Total Amount (<?php	echo $info->company_currency;?>)</th>
-								<th class="payment_status">Payment Method</th>
-								<th class="sale_status">Sales Status</th>
-								<th class="sale_date">Sales Date</th>
-								@if(auth()->user()->is_admin())
-								<th class="user.username admininfo">Created By</th>
-								@endif
-								<th class="action">Action</th>
-							</tr>
-						</thead>
-					</table>
+                    @include('table',['headers'=>['sale_id','sale_name order'=>'Customer_Name',
+                    'total'=>'Total_Amount_('.$info->company_currency.')',
+                                'payment_status'=>'Payment_Method','sale_status','sale_date',
+                                auth()->user()->is_admin()?'user.username admininfo created':''=>'created_by']])
+
 				</div>
             </div>
         </div>
     </div>
+    <form action="{{ route('sales.upload')}}" class="text-center mt-3" method="post" enctype="multipart/form-data">
+        @csrf
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label  class="col font-weight-bold"for="csv">Upload CSV</label>
+                        <input type="file" name="csv" id="csv">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                        <button type="submit" class="btn btn-primary">submit</button>
+                </div>
+            </div>
+    </form>
 
     <div id="Modal" class="modal fade" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
 	<div class="modal-dialog" role="document">
     		<form method="post" id="form" class="form" data-url="<?php echo route('sales')?>" action="<?php echo route('sales')?>">
-    			<div class="modal-content">
+                @csrf
+                <div class="modal-content">
     				<div class="modal-header">
 					<h4 class="modal-title"><i class="fa fa-plus"></i> Create Sales Order</h4>
     					<button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -58,9 +68,12 @@
 							<textarea name="sale_address" id="sale_address" class="form-control" required></textarea>
 						</div>
 						<div class="form-group">
-							<label class="col-md-8 px-0">Enter Product Details</label>
-							<label class="col-md-3 px-0">Enter Unit</label>
-							<span id="span_item_details"></span>
+							<label class="col-md-7 px-0 ">Product Details</label>
+                            <label class="col-md-2 px-0">Discount</label>
+							<label class="col-md-2 px-0 ">Unit</label>
+							<span id="span_item_details">
+								@include('productlist-select',['select_menu'=>$product_list])
+							</span>
 						</div>
 						<div class="form-group">
 							<label>Select Payment Method</label>
@@ -79,49 +92,4 @@
     	</div>
     </div>
 	@include('page-footer',['company_name'=>$info->company_name])
-    @include('layouts.footer')
-    <script type="text/javascript">
-		$.ajax({
-			'type': "POST",
-			'dataType': 'json',
-			'url': listurl,
-			'data': {
-						product_status:'active'
-					},
-			'success': function(data){
-				list(data);
-			},
-			});
-
-
-		function add_row(count = '')
-		{
-			var html = '';
-			html += '<span class="item_details " id="row'+count+'">';
-			html += '<div class="row" id="item_details_row'+count+'">';
-			html += '<div class="col-md-8">';
-			html += '<select name="product_id[]" id="product_id'+count+'" class="form-control selectpicker" data-live-search="true" required>';
-			html += product_list;
-			html += '</select>';
-			html += '</div>';
-			html += '<div class="col-md-3 px-0">';
-			html += '<input type="number" name="quantity[]" id="quantity'+count+'"  min="1" max="" class="form-control" required />';
-			html += '</div>';
-			html += '<div class="col-md-1 pl-0">';
-			if(count == '')
-				html += '<button type="button" name="add_more" id="add_more" class="btn btn-success">+</button>';
-			else
-				html += '<button type="button" name="remove" id="'+count+'" class="btn btn-danger remove">-</button>';
-			html += '</div>';
-			html += '</div></div></span>';
-			$('#span_item_details').append(html);
-		}
-
-        function update(data){
-            $('#sale_name').val(data.sale_name);
-            $('#sale_date').val(data.sale_date);
-            $('#sale_address').val(data.sale_address);
-            $('#span_item_details').html(data.item_details);
-            $('#payment_status').val(data.payment_status);
-        }
-</script>
+    @include('layouts.footer_script')

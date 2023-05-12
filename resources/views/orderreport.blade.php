@@ -19,8 +19,8 @@
     </div>
 @else
             <h2 class="text-center text-warning bg-secondary">
-                <?= $tables?> Order Report Between {{(!empty($from_date)?$from_date:'(No start date given)')}}
-                and  {{(!empty($to_date)?$to_date:'(No end date given)')}}
+                <?= $tables?> Order Report Between {{($from_date??'(No start date given)')}}
+                and  {{($to_date??'(No end date given)')}}
             </h2>
             <table class="table w-100 border-2  " >
                 <tr class="text-center border-2 bg-dark text-white">

@@ -14,7 +14,8 @@ return [
     */
 
     'paths' => [
-        resource_path('views'),resource_path('views/components'),resource_path('views/layouts'),resource_path('views/auth')
+        resource_path('views'),resource_path('views/components'),
+        resource_path('views/layouts'),resource_path('views/auth')
     ],
 
     /*

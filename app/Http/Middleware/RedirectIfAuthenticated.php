@@ -23,7 +23,7 @@ class RedirectIfAuthenticated
             //redirect if the user is already authenticated
             if (Auth::guard($guard)->check()) {
                 if ($request->ajax()) {
-                    return response()->json(array('response'=>RouteServiceProvider::HOME));
+                    return response()->json(array('redirect'=>RouteServiceProvider::HOME));
                 }
                 return redirect(RouteServiceProvider::HOME);
             }

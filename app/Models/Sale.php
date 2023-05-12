@@ -17,9 +17,9 @@ class Sale extends Model
     protected $hidden = ['password','remember_token'];
 
     protected $fillable = ['sale_name','sale_status','brand_id',
-    'category_id','sale_discount','sale_date',
+    'category_id','sale_discount','sale_date','sale_discount',
     'product_base_price','sale_tax','sale_sub_total','payment_status',
-    'opening_stock','sale_address','status'];
+    'opening_stock','sale_address'];
 
     public function salename(): Attribute
     {
@@ -52,7 +52,7 @@ class Sale extends Model
     protected static function booted()
     {
         static::creating(function ($data) {
-            $data->user_id = auth()->user()->id;
+            $data->user_id = auth()->id();
         });
     }
 }

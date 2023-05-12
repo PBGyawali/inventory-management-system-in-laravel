@@ -2,16 +2,12 @@
     <x-auth-card>
         <x-slot name="logo">
             <a href="/">
-                @isset($info)
-                <img src="{{$info->company_logo}}" alt="" srcset="">
-                @endisset
+                <img src="{{auth()->user()->profile_image}}" class="w-50 h-40 rounded-full mx-auto" alt="" >
             </a>
         </x-slot>
 
-        <div class="mb-4 text-md text-gray-600">
-            {{ __('This is a secure area of website.
-             Only authorized personell are allowed. Please confirm with your current
-             password and the secret password of the company before continuing.') }}
+        <div class="mb-4 text-md text-red-600">
+            {{ __('message.secret') }}
         </div>
 
         <!-- Validation Errors -->
@@ -40,9 +36,14 @@
                         <span class="text-red-600">{{ $message }}</span>
                     @enderror
             </div>
-            <div class="flex justify-end mt-6">
+            <div class="flex justify-between mt-6">
+                <a href="{{url()->previous()}}" class="btn btn-link inline-flex items-center px-4 py-2
+                     bg-blue-700 rounded-md font-semibold   text-white uppercase hover:bg-purple-800  ">
+                    {{ __('Return') }}
+                </a>
+
                 <x-button>
-                    {{ __('Confirm') }}
+                    {{ __('Forward') }}
                 </x-button>
             </div>
         </form>

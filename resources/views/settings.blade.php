@@ -6,9 +6,11 @@ if(isset($setuppage)||session()->has('setup')){
 }
 ?>
         <!-- Page Heading -->
-        <h1 class="h3 mb-4 text-gray-800"><?php echo ($setup)?'System Configuration':'Setting'?></h1>
+        <h1 class="h3 mb-4 ml-3 text-gray-800"><?php echo ($setup)?'System Configuration':'Setting'?></h1>
         @include('components.message')
-        <form method="post" class="form" id="form" class="form" enctype="multipart/form-data" action="<?= ($setup)?route('settings_store'):route('settings_update')?>">
+        <form method="post" class="form setting no-reset" id="form" enctype="multipart/form-data" action="<?= ($setup)?route('settings_store'):route('settings_update',['company_info'=>$info->getKey()])?>">
+            @csrf
+            @method('PUT')
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <div class="row">
@@ -16,7 +18,7 @@ if(isset($setuppage)||session()->has('setup')){
                             <h6 class="m-0 font-weight-bold text-primary"><?php echo ($setup)?'Set up Account':'Setting'?></h6>
                         </div>
                         <div clas="col text-right" >
-                            <button type="submit" name="edit_button" id="edit_button" class="btn btn-primary btn-sm reset"> <?php echo ($setup)?'<i class="fas fa-save"></i>  Set Up':'<i class="fas fa-edit"></i> Edit'?></button>
+                            <button type="submit" id="edit_button" class="btn btn-primary btn-sm"> <?php echo ($setup)?'<i class="fas fa-save"></i>  Set Up':'<i class="fas fa-edit"></i> Edit'?></button>
                             &nbsp;&nbsp;
                         </div>
                     </div>
@@ -118,12 +120,7 @@ if(isset($setuppage)||session()->has('setup')){
                     <?php endif?>
                 </div>
             </div>
-            <input type="hidden" name="company_id" id="company_id" value="<?php echo ($setup)?'':$info->company_id?>" />
+            <input type="hidden" name="company_id" id="company_id" value="<?php echo ($setup)?'':$info->getKey()?>" />
         </form>
         @include('page-footer',['company_name'=>$info->company_name])
-        @include('layouts.footer')
-<script>
-    let id=$("#company_id").val();
-    if(id)
-    method_type='/'+id;
-</script>
+        @include('layouts.footer_script')

@@ -58,9 +58,9 @@ return [
     'asset_url' => env('APP_URL').'/public',
     'storage_url' => env('APP_URL').'/storage/app/public/images/',
     'user_images_url' => env('APP_URL').'/storage/app/public/images/',
-    'storage_path' => storage_path('/app/public/'),
+    'storage_path' => storage_path('app/public/'),
     'allowed_images' => array("jpg", "jpeg", "png"),
-    'user_images_path' => storage_path('/app/public/images/'),
+    'user_images_path' => storage_path('app/public/images/'),
 
     /*
     |--------------------------------------------------------------------------

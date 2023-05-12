@@ -15,10 +15,10 @@ use Illuminate\Support\Str;
             return $this->list('category',$value);
         }
         function brand_list($category_id,$value=null){
-            return $this->list('brand',$value,'','active',$category_id);
+            return $this->list('brand',$value,null,'active',$category_id);
         }
         function product_list($value=null,$status=null){
-            return $this->list('product',$value,'',$status);
+            return $this->list('product',$value,null,$status);
         }
         function supplier_list($value=null){
             return $this->list('supplier',$value,'name');
@@ -34,14 +34,12 @@ use Illuminate\Support\Str;
         private function list($category,$value,$column=null,$status='active',$category_id=null,$attr=[])
         {
             $placeholder=$condition=[];
-            $columnname=isset($attr['column'])?$attr['column']:($column?$category.'_'.$column:'');
+            $model = 'App\Models\\'.$category;
+            $columnname=isset($attr['column'])?$attr['column']:($column?$category.'_'.$column:null);
             $compare=isset($attr['compare'])?$attr['compare']:'=';
-			//if any default name for the select entry is given then use it other wise use the  category name instead
-			$default_name=ucwords(isset($attr['default_name'])?$attr['default_name']:$category);
             if($status)			{	$placeholder[]=$category."_status";	$condition[]=$status;		}
             if($category_id)	{	$placeholder[]="category_id";		$condition[]=$category_id;	}
-            $query = DB::table(Str::plural($category))
-			->orderBy($columnname?$columnname:$category."_name", 'ASC');
+            $query = $model::orderBy($columnname??$category."_name");
 
 			if($placeholder)
             foreach($placeholder as $key=> $columnattribute)
@@ -53,15 +51,15 @@ use Illuminate\Support\Str;
             $result =$query->get();
             $output = '';
             $selected_value = $value;// value from database
-            $output .= '<option value="" selected hidden disabled> Select '.$default_name.'</option>';
+            $output .= '<option value="" selected hidden disabled> Select '.$category.'</option>';
 
             foreach($result as $row)
             {
                 $disabled="";
                 $extratext='';
                 $productquantity=1;
-                if ($category=='product' && $status==NULL && $value==NULL){
-                    $productquantity=Helper::available_product_quantity($row->product_id);
+                if ($category=='product' && !$status && !$value){
+                    $productquantity=Helper::available_product_quantity($row->getKey());
                 }
                 if( $productquantity<=0){
                     $disabled="disabled";
@@ -71,12 +69,12 @@ use Illuminate\Support\Str;
                     $extratext='('.$row->{$category."_"."percentage"}.'%)';
                 }
 				//value for the select entry determing which column to take it from
-				$selectvalue=$row->{$columnname?$columnname:$category."_id"};
+				$selectvalue=$row->$columnname??$row->getKey();
 				//checking if the select menu should be selected or not
 				//by checking if it matches with the value from database
                 $selected = ($selected_value == $selectvalue) ? "selected" : "";
                 $output .= '<option value="'.$selectvalue.'"'. $selected.' '.$disabled.  '>'.
-                $row->{$column?$category."_name":($columnname?$columnname:$category."_name")}.
+                $row->{$column?$category."_name":($columnname??$category."_name")}.
                    ' '.$extratext.'</option>';
             }
             return $output;

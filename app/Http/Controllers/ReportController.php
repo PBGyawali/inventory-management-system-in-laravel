@@ -10,6 +10,7 @@ use App\Models\Sale;
 use Dompdf\Dompdf;
 use \NumberFormatter;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 use Barryvdh\DomPDF\Facade\Pdf;
 // Reference the Options namespace
 use Barryvdh\Dompdf\Options;
@@ -29,13 +30,12 @@ class ReportController extends Controller
     }
     public function index(Request $request)
     {
-        $info=$this->companyInfo;
-        $page='report';
+       
         $sales_target=$this->get_target('sales');
         $revenue_target=$this->get_target('revenue');
         $user_wise_total_sales=$this->user_wise_total('sale');
         $user_wise_total_purchase=$this->user_wise_total('purchase');
-        return view('report',compact('info','page','sales_target',
+        return view('report',compact('sales_target',
         'revenue_target',
         'user_wise_total_sales',
         'user_wise_total_purchase', ) );
@@ -86,7 +86,7 @@ class ReportController extends Controller
         set_time_limit(100);
 
         // Render the view with the relevant variables
-        $output= view($view, compact('info','product_result','row','table','tables','total','grandtotal',
+        $output= view($view, compact('product_result','row','table','tables','total','grandtotal',
         'total_actual_amount','total_tax_amount','total_in_words') )->render();
 
         // if($view=='bill')
@@ -95,7 +95,7 @@ class ReportController extends Controller
         // Create a new Dompdf instance
         $pdf = new Dompdf();
         // Set the file name for the PDF to be the table name, followed by the ID of the row being viewed
-        $file_name = $tables.'-'.$row->{$table.'_id'}.'.pdf';
+        $file_name = $tables.'-'.$row->getKey().'.pdf';
         // Load the HTML output into the Dompdf instance
         $pdf->loadHtml($output);
         //remove this if you want a4 size
@@ -209,6 +209,71 @@ class ReportController extends Controller
         else
             return number_format($current_status); // Return the current status as a percentage rounded to two decimal places.
     }
+
+
+
+    // function to download database data as csv file
+    public function downloadCSV(Request $request,$table, $from_date, $to_date)
+    {
+
+        $validatedData = Validator::make(['start_date'=>$from_date, 'end_date'=>$to_date], [
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date','before:tomorrow'],
+        ])->validate();
+
+               // Define the MySQL table name
+                $table = Str::plural($table);
+                $model = 'App\Models\\'.$table;
+                $delimiter=$request->delimiter??',';
+                // Set the file path and name
+                $filename=date("Y_m_d").'_'.time().'_'.$table.'_data.csv';
+                // Get the column names from the MySQL table
+              //$columns = DB::getSchemaBuilder()->getColumnListing($table);
+                $columns = DB::table('information_schema.columns')
+                ->where('table_name', '=', $table)
+                ->orderBy('ordinal_position')
+                ->pluck('COLUMN_NAME')
+                ->toArray();
+
+
+                // Fetch the data from the MySQL table and cast it to array
+                $query = DB::table($table);
+                if($request->from_date!=''&& $request->to_date!='')
+                $query->whereBetween($table.'.created_at',[$request->from_date, $request->to_date]);
+                $data=$query->get();
+                if($data->isEmpty())
+                    return view('not-found',['element'=>$table]);
+
+                $data=$data->toArray();
+                // Open the CSV file for writing
+                $handle = fopen($filename, 'w+');
+                // Write the column names to the CSV file
+                fputcsv($handle, $columns);
+
+                // Write the data to the CSV file
+                foreach ($data as $row) {
+                    fputcsv($handle, (array) $row,$delimiter);
+                }
+                    // Close the file
+                    fclose($handle);
+
+                // get the CSV file contents
+                $content = file_get_contents($filename);
+                // Set the CSV file content as the response body
+                $response = response($content);
+
+            // Set the response headers for downloading the file
+            $headers = array('Content-Type' => 'text/csv',
+                // declaring as an attachment proceeds to download of file directly
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            );
+
+            // Add the headers to the response
+            $response->headers->replace($headers);
+            // Return the response
+            return $response;
+    }
+
 
 
 

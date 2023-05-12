@@ -22,7 +22,7 @@ class Product extends Model
     'product_base_price','product_tax','product_unit','product_quantity',
     'opening_stock','defective_quantity','status'];
 
-   
+
     public function getProductDescriptionAttribute($name){
         return ucwords($name);
     }
@@ -69,7 +69,7 @@ class Product extends Model
     protected static function booted()
     {
         static::creating(function ($Product) {
-            $Product->user_id = auth()->user()->id;
+            $Product->user_id = auth()->id();
             $Product->product_date = date('Y-m-d');
         });
     }

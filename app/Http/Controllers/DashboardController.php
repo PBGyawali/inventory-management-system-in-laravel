@@ -23,7 +23,7 @@ class DashboardController extends Controller
 
     public function index()
     {
-        $info=$this->companyInfo;
+        
         // sales info in numbers
         $today_sales=$this->today_sales();
         $yesterday_sales=$this->yesterday_sales();
@@ -66,9 +66,9 @@ class DashboardController extends Controller
         $total_expense_value=$this->total_expense_value();
         $total_cash_expense_value=$this->total_cash_expense_value();
         $total_credit_expense_value=$this->total_credit_expense_value();
-        $page='dashboard';
+        
         return view('home',
-        compact('info',
+        compact(
         'today_sales','yesterday_sales','last_seven_day_sales','total_sales',
         'today_sales_recorded','yesterday_sales_recorded','last_seven_day_sales_recorded',
         'today_purchases','yesterday_purchases','last_seven_day_purchases','total_purchases',
@@ -79,7 +79,7 @@ class DashboardController extends Controller
         'total_revenue_value','total_cash_revenue_value','total_credit_revenue_value',
         'total_purchase_value','total_cash_purchase_value','total_credit_purchase_value',
         'total_expense_value','total_cash_expense_value','total_credit_expense_value',
-        'page')
+        )
         );
     }
     function total_sales_value(){
@@ -143,7 +143,7 @@ class DashboardController extends Controller
 		// If the user is not an admin, add their user ID to our arrays.
 		if(!auth()->user()->is_admin()) {
 			$placeholder[]="user_id";
-			$condition[]=auth()->user()->id;
+			$condition[]=auth()->id();
 		}
 
 		// Use the Helper::total function to calculate the total value of transactions based on our filters.
@@ -238,7 +238,7 @@ class DashboardController extends Controller
 		// If the user is not an admin, add their user ID to our conditions array.
 		if(!auth()->user()->is_admin()){
 			$condition[]='user_id';
-			$value[]=auth()->user()->id;
+			$value[]=auth()->id();
 			$compare[]='=';
 		}
 

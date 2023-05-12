@@ -6,29 +6,38 @@
 
 			<div class="card card-secondary">
                 <div class="card-header">
-					@include('header_card',['element' =>'purchase','extratext'=>'order','reporturl'=>route('report')])
+					@include('header_card',['element' =>'purchase','extratext'=>'order',
+
+                   'reporturl'=>auth()->user()->is_admin()?route('report.order',['table'=>'purchase','from_date'=>':from_date','to_date'=>':to_date']):null,
+                    'exporturl'=>auth()->user()->is_admin()?route('report.csv',['table'=>'purchase','from_date'=>':from_date','to_date'=>':to_date']):null,
+                    ])
                 </div>
                 <div class="card-body">
-                	<table id="table" class="table table-bordered table-striped">
-                		<thead>
-							<tr>
-								<th class="purchase_id">Purchase ID</th>
-								<th class="purchase_name">Supplier Name</th>
-								<th class="purchase_sub_total">Total Amount (<?php	echo $info->company_currency;	?>)</th>
-								<th class="payment_status">Payment Method</th>
-								<th class="purchase_status">Purchase Status</th>
-                                <th class="purchase_date">Purchase Date</th>
-                                @if(auth()->user()->is_admin())
-								<th class="user.username admininfo created">Created By</th>
-								@endif
-                                <th class="action">Action</th>
-							</tr>
-						</thead>
-                	</table>
+                    @include('table',['headers'=>['purchase_id','purchase_name order'=>'Supplier_Name',
+                    'purchase_sub_total'=>'Total_Amount_('.$info->company_currency.')',
+                                'payment_status'=>'Payment_Method','purchase_status','purchase_date',
+                                auth()->user()->is_admin()?'user.username admininfo created':''=>'created_by']])
                 </div>
             </div>
         </div>
     </div>
+
+    <form action="{{ route('purchase.upload')}}" class="text-center mt-3"method="post" enctype="multipart/form-data">
+        @csrf
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label  class="col font-weight-bold"for="csv">Upload CSV</label>
+                        <input type="file" name="csv" id="csv">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                        <button type="submit" class="btn btn-primary">submit</button>
+                </div>
+            </div>
+    </form>
 
     <div id="Modal" class="modal fade" data-backdrop="static">
     	<div class="modal-dialog">
@@ -61,9 +70,12 @@
 							<textarea name="purchase_address" id="purchase_address" class="form-control"></textarea>
 						</div>
 						<div class="form-group">
-							<label class="col-md-8 px-0">Enter Product Details</label>
-							<label class="col-md-3 px-0">Enter Unit</label>
-							<span id="span_item_details"></span>
+							<label class="col-md-7 px-0">Product Details</label>
+                            <label class="col-md-2 px-0">Discount</label>
+							<label class="col-md-2 px-0">Unit</label>
+							<span id="span_item_details">
+								@include('productlist-select',['select_menu'=>$product_list,'element'=>'purchase'])
+							</span>
 						</div>
 						<div class="form-group">
 							<label>Select Payment Method</label>
@@ -82,51 +94,4 @@
     	</div>
     </div>
 	@include('page-footer',['company_name'=>$info->company_name])
-    @include('layouts.footer')
-    <script type="text/javascript">
-			$.ajax({
-			'type': "POST",
-			'dataType': 'json',
-			'url': listurl,
-			'data':{status:'active'},
-			'success': function(data){	list(data);	},
-			});
-
-		function add_row(count = '')
-		{		
-			// create a template string with the HTML elements
-			const template = `
-				<span class="item_details" id="row${count}">
-				<div class="row" id="item_details_row${count}">
-					<div class="col-md-8">
-					<select name="product_id[]" id="purchase_id${count}" class="form-control" data-live-search="true" required>
-						${product_list}
-					</select>
-					</div>
-					<div class="col-md-3 px-0">
-					<input type="number" name="quantity[]" class="form-control" required />
-					</div>
-					<div class="col-md-1 pl-0">
-					<button type="button"  
-							id="${count ? count : 'add_more'}" 
-							class="btn ${count ? 'btn-danger remove' : 'btn-success'}">
-						${count ? '-' : '+'}
-					</button>
-					</div>
-				</div>
-				</span>
-			`;
-			
-			// append the template to the DOM
-			$('#span_item_details').append(template);
-		}
-
-        function update(data){
-            $('#purchase_name').val(data.purchase_name);
-            $('#purchase_date').val(data.purchase_date);
-            $('#purchase_address').val(data.purchase_address);
-            $('#span_item_details').html(data.item_details);
-            $('#purchase_id').val(data.product_id);
-            $('#payment_status').val(data.payment_status);
-        }
-</script>
+    @include('layouts.footer_script')

@@ -11,7 +11,7 @@
                 @include('components.message')
 				<div class="card-body">
 					<form method="post" id="form" class="form" action="{{ route('login') }}">
-
+                        @csrf
 						<div class="form-group">
 								<label>Username/Email </label>
 								<div class="input-group">
@@ -91,11 +91,10 @@
 
 
 </script>
-@include('layouts.footer')
+@include('layouts.footer_script')
 <script>
 function update(data){
-    $('#message').html('<div class="alert alert-success">Login success. Redirecting.......</div>');
+    showMessage('Login success. Redirecting.......','success')
     enableButton(true);
-    window.location.assign('.'+data.response);
 }
 </script>

@@ -10,7 +10,7 @@ class ProductPurchase extends Model
     use HasFactory;
 
 
-    protected $fillable = ['purchase_id','tax','price','product_id','quantity'];
+    protected $fillable = ['purchase_id','tax','price','product_id','quantity','discount'];
 
     // public $timestamps = false;
 

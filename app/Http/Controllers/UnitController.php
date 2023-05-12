@@ -7,10 +7,12 @@ use Illuminate\Http\Request;
 use App\Models\CompanyInfo;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
+use App\Rules\UniqueSingularOrPlural;
+
 class UnitController extends Controller
 {
     public $companyInfo=[];
-    
+
 
     public function __construct(Request $request)
     {
@@ -25,7 +27,7 @@ class UnitController extends Controller
             return DataTables::of($data)
                ->addColumn('action', function($data){
                 // primary key of the row
-                $id=$data->unit_id;
+                $id=$data->getKey();
                 // status of the row
                 $status=$data->unit_status;
                 // data to display on modal, tables
@@ -36,27 +38,28 @@ class UnitController extends Controller
                 $status_class=$status=="active"?"warning":"success";
                 // optional button to display
                 $buttons=['delete'];
-                //render action button from view 
+                //render action button from view
                 $actionBtn = view('control-buttons',compact('buttons','id','status','prefix','statusbutton','status_class'))->render();
                 return $actionBtn;
                 })
                 ->editColumn('unit_status', function ($data) {
                     $status =$data->unit_status;
                     $class=$status == 'active'?'success':'danger';
-                    //render status with css from view 
+                    //render status with css from view
                     return view('badge',compact('status','class'))->render();
                   })
                 ->make(true);
         }
-        $info=$this->companyInfo;
-        $page='unit';
-        return view('unit',compact('info','page' ) );
+        
+        return view('unit' );
     }
 
     public function store(Request $request)
     {
         $this->validate($request, [
-            'unit_name' => ['required','max:255','unique:units'],
+            'unit_name' => ['required','max:255',
+            new UniqueSingularOrPlural('units'),
+            ],
         ]);
         Unit::create($request->all());
         // Return JSON response with success message from translation string
@@ -74,7 +77,10 @@ class UnitController extends Controller
         if(!$request->hasAny('status','unit_status'))
         {
              $this->validate($request, [
-            'unit_name' => ['required','max:255',Rule::unique('units')->ignore($unit)]]);
+            'unit_name' => ['required','max:255',
+                            new UniqueSingularOrPlural('units',$unit),
+                            ]
+        ]);
         }
             $unit->update($request->all());
             // Return JSON response with success message from translation string

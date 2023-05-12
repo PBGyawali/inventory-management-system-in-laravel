@@ -10,7 +10,7 @@ use Yajra\DataTables\Facades\DataTables;
 class SupplierController extends Controller
 {
     public $companyInfo=[];
-    
+
 
     public function __construct(Request $request)
     {
@@ -25,7 +25,7 @@ class SupplierController extends Controller
             return DataTables::of($data)
                 ->addColumn('action', function($data){
                     // primary key of the row
-                    $id=$data->supplier_id;
+                    $id=$data->getKey();
                     // status of the row
                     $status=$data->supplier_status;
                     // data to display on modal, tables
@@ -36,21 +36,20 @@ class SupplierController extends Controller
                     $status_class=$status=="active"?"warning":"success";
                     // optional button to display
                     $buttons=['delete'];
-                    //render action button from view 
+                    //render action button from view
                     $actionBtn = view('control-buttons',compact('buttons','id','status','prefix','statusbutton','status_class'))->render();
                     return $actionBtn;
                 })
                 ->editColumn('supplier_status', function ($data) {
                         $status =$data->supplier_status;
                         $class=$status == 'active'?'success':'danger';
-                        //render status with css from view 
+                        //render status with css from view
                         return view('badge',compact('status','class'))->render();
                     })
                 ->make(true);
         }
-        $info=$this->companyInfo;
-        $page='supplier';
-        return view('supplier',compact('info','page') );
+        
+        return view('supplier');
     }
 
     public function store(Request $request)
@@ -91,7 +90,7 @@ class SupplierController extends Controller
         // Update supplier data
         $supplier->update($request->all());
         // Return JSON response with success message from translation string
-        return response()->json(['response'=>__('message.update',['name'=>'supplier'])]);       
+        return response()->json(['response'=>__('message.update',['name'=>'supplier'])]);
     }
 
 
@@ -101,6 +100,6 @@ class SupplierController extends Controller
         // Delete the supplier data
         $supplier->delete();
         // Return JSON response with success message from translation string
-        return response()->json(['response'=>__('message.delete',['name'=>'supplier'])]);        
+        return response()->json(['response'=>__('message.delete',['name'=>'supplier'])]);
     }
 }

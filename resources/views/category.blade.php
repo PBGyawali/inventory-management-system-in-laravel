@@ -9,14 +9,7 @@
                 <div class="card-body">
                     <div class="row">
                     	<div class="col-sm-12 table-responsive">
-                    		<table id="table" class="table table-bordered table-striped">
-                    			<thead><tr>
-									<th class="category_id">ID</th>
-									<th class="category_name">Category Name</th>
-									<th class="category_status">Status</th>
-									<th class="action">Action</th>
-								</tr></thead>
-                    		</table>
+                            @include("table",['headers'=>['category_id',"category_name","category_status"]])
                     	</div>
                     </div>
                 </div>
@@ -29,7 +22,8 @@
 	<div id="Modal" class="modal fade" data-backdrop="static">
   	<div class="modal-dialog">
     	<form method="post" id="form" class="form"  action="<?php echo route('category')?>">
-      		<div class="modal-content">
+            @csrf
+            <div class="modal-content">
         		<div class="modal-header">
           			<h4 class="modal-title" id="modal_title"><i class="fa fa-plus"></i>Add category</h4>
           			<button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -55,12 +49,8 @@
 </div>
 </div>
 @include('page-footer',['company_name'=>$info->company_name])
-@include('layouts.footer')
-<script>
-        function update(data){
-            $('#category_name').val(data.category_name);
-        }
-</script>
+@include('layouts.footer_script')
+
 
 
 

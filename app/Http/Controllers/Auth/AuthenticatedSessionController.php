@@ -41,13 +41,13 @@ class AuthenticatedSessionController extends Controller
                 // If the user is active, regenerate the session and redirect to the home page
                 $request->session()->regenerate();
                 if ($request->ajax()) {
-                    return response()->json(['response' => RouteServiceProvider::HOME]);
+                    return response()->json(['redirect' => RouteServiceProvider::HOME]);
                 }
                 return redirect()->intended(RouteServiceProvider::HOME);
             } else {
                 // If the user is inactive, log them out and show an error message
                 Auth::logout();
-                throw ValidationException::withMessages(['inactive' =>'Your account is inactive. Please activate or contact admin']);
+                throw ValidationException::withMessages(['inactive' =>__('auth.inactive')]);
             }
         } else {
             // If authentication fails, show an error message

@@ -40,7 +40,8 @@
                     </div>
 
                 </div><!--row div end -->
-                <div class="row pt-5">
+
+                <div class="row pt-2">
 
                     <div class="col-xl-3 col-md-6 mb-4">
                         @include('small-card',['title'=>'Purchase Transaction (Today)','value'=>$today_purchases,'class'=>'primary'])
@@ -156,4 +157,4 @@
 		@include('page-footer',['company_name'=>$info->company_name])
 <script type="text/javascript" src="<?= env('JS_URL')?>jquery.easing.min.js"></script>
 <script type="text/javascript" src="<?= env('JS_URL')?>theme.js"></script>
-@include('layouts.footer')
+@include('layouts.footer_script')

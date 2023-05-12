@@ -29,7 +29,7 @@ class BrandController extends Controller
             return DataTables::of($data)
                 ->addColumn('action', function($data){
                     // primary key of the row
-                    $id=$data->brand_id;
+                    $id=$data->getKey();
                     // status of the row
                     $status=$data->brand_status;
                     // data to display on modal, tables
@@ -52,10 +52,9 @@ class BrandController extends Controller
                  })
                 ->make(true);
         }
-        $info=$this->companyInfo;
-        $page='brand';
+        
         $category_list=Select::instance()->category_list();
-        return view('brand',compact('info','page','category_list' ) );
+        return view('brand',compact('category_list' ) );
     }
 
     public function store(Request $request)

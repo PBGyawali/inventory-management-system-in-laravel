@@ -6,20 +6,7 @@
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-bordered table" id="table" width="100%" cellspacing="0">
-                                    <thead>
-                                        <tr>
-                                            <th class="tax_id">ID</th>
-                                            <th class="tax_name">Tax Name</th>
-                                            <th class="tax_percentage">Tax Percentage</th>
-                                            <th class="tax_status">Status</th>
-                                            <th class="action">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-
-                                    </tbody>
-                                </table>
+                                @include("table",['headers'=>['tax_id',"tax_name","tax_percentage","tax_status"]])
                             </div>
                         </div>
                     </div>
@@ -29,7 +16,8 @@
 <div id="Modal" class="modal fade" data-backdrop="static">
   	<div class="modal-dialog">
     	<form method="post" id="form" class="form" action="<?php echo route('tax')?>">
-      		<div class="modal-content">
+            @csrf
+            <div class="modal-content">
         		<div class="modal-header">
           			<h4 class="modal-title" id="modal_title">Add Data</h4>
           			<button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -47,17 +35,11 @@
         		</div>
         		<div class="modal-footer">
                     <button type="submit"  id="submit_button" class="btn btn-success">Add </button>
-          			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          			<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         		</div>
       		</div>
     	</form>
   	</div>
 </div>
 @include('page-footer',['company_name'=>$info->company_name])
-@include('layouts.footer')
-<script>
-    function update(data){
-        $('#tax_name').val(data.tax_name);
-        $('#tax_percentage').val(data.tax_percentage);
-    }
-</script>
+@include('layouts.footer_script')

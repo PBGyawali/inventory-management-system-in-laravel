@@ -8,6 +8,7 @@ use App\Models\CompanyInfo;
 use App\Helper\Select;
 use App\Models\Product;
 use App\Models\ProductPurchase;
+use App\Models\ProductEntry;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +26,7 @@ class PurchaseController extends Controller
         return DataTables::of($data)
             ->addColumn('action', function($data){
                 // primary key of the row
-                $id=$data->purchase_id;
+                $id=$data->getKey();
                 // status of the row
                 $status=$data->purchase_status;
                 // data to display on modal, tables
@@ -37,9 +38,9 @@ class PurchaseController extends Controller
                 // button class of change status button
                 $status_class=$status=="active"?"success":"danger";
                 // optional button to display
-                $buttons=[auth()->user()->is_admin()?'delete':'','report'];
+                $buttons=[auth()->user()->is_admin()?'delete':null,'report'];
                 //url for view pdf report
-                $reporturl='report/'.($status=='active'?'bill':'invoice').'-purchase/'.$id;
+                $reporturl=route('report.document',['table'=>'purchase','id'=>$id,'document'=>$status=='active'?'bill':'invoice']);
                 //render action button from view
                 $actionBtn = view('control-buttons',compact('buttons','id','status','prefix','extratext','statusbutton','status_class','reporturl'))->render();
                 return $actionBtn;
@@ -62,11 +63,11 @@ class PurchaseController extends Controller
             })
             ->make(true);
     }
-        $info=CompanyInfo::first();
-        $page='purchase';
+        
         $supplier_list=Select::instance()->supplier_list();
-        return view('purchase',compact('info',
-        'page','supplier_list') );
+        // Generate a list of active products as a Select object and return it as a JSON response
+        $product_list=Select::instance()->product_list('','active');
+        return view('purchase',compact('supplier_list','product_list') );
     }
 
 
@@ -84,43 +85,75 @@ class PurchaseController extends Controller
             'purchase_date' => ['required', 'date','before:tomorrow'],
             'payment_status'=>['required'],
         ]);
-        // Create a new Purchase record with the data from the request
-        $data=Purchase::create($request->all());
-        $totalAmount = 0;
-        $totalTax = 0;
-        $productPurchases = [];
 
-        // Loop through each product in the request data and calculate its base price and tax amount
-        foreach ($request->product_id as $index => $productId)
-        {
-            // Get the product details from the database
-            $product =Product::find($productId);
-            $quantity = $request->quantity[$index];
-            $price = $product->product_base_price;
-            $taxPercentage = $product->product_tax;
-            $basePrice = $price * $quantity;
-            $taxAmount = ($basePrice / 100) * $taxPercentage;
-            $totalTax += $taxAmount;
-            $totalAmount += $basePrice;
-            // Add the product purchase record to the list of product purchases for the Purchase
-            $productPurchases[] = [
-                                    'purchase_id' => $data->purchase_id,
-                                    'product_id' => $productId,
-                                    'quantity' => $quantity,
-                                    'price' => $price,
-                                    'tax' => $taxAmount
-                                ];
-            // Increment the product quantity in the database by the quantity purchased
-            $product->increment('product_quantity', $quantity);
+        DB::beginTransaction();
+        try {
+            $totalAmount = 0;
+            $totalTax = 0;
+            $productPurchases = [];
+
+            $total_quantities=[];
+            foreach ($request->product_id as $index => $productId)
+            {
+                $quantity = $request->quantity[$index];
+                $discount=$request->discount[$index];
+                if(!isset($total_quantities[$productId]))
+                    $total_quantities[$productId]=0;
+                $total_quantities[$productId]+=$quantity;
+                if(!isset($total_discounts[$productId]))
+                    $total_discounts[$productId]=0;
+                $total_discounts[$productId]+=$discount;
+            }
+
+            // Loop through each product in the request data and calculate its base price and tax amount
+            foreach ($total_quantities as $productId=>$quantity)
+            {
+                // Get the product details from the database
+                $product =Product::find($productId);
+                $price = $product->product_base_price;
+                $taxPercentage = $product->product_tax;
+                $discount=$total_discounts[$productId];
+                $basePrice = ($price-$discount) * $quantity;
+                $taxAmount = ($basePrice / 100) * $taxPercentage;
+                $totalTax += $taxAmount;
+                $totalAmount += $basePrice;
+                // Add the product purchase record to the list of product purchases for the Purchase
+                $productPurchases[] = [
+                                        'product_id' => $productId,
+                                        'quantity' => $quantity,
+                                        'price' => $price,
+                                        'tax' => $taxAmount,
+                                        'discount'=>$discount
+                                    ];
+                                    ProductEntry::insert([[
+                                        'product_id' => $productId,
+                                        'entry_date' =>$request->purchase_date,
+                                        'total value' =>$basePrice,
+                                        'opening_stock' =>$quantity
+                                    ]]);
+                // Increment the product quantity in the database by the quantity purchased
+                $product->increment('product_quantity', $quantity);
+            }
+            $extra_fields=[
+                'purchase_sub_total' => $totalAmount,
+                'purchase_tax'=>$totalTax,
+                'purchase_discount'=>collect($total_discounts)->sum()
+            ];
+
+            $purchase=Purchase::create($request->all()+$extra_fields);
+            foreach ($productPurchases as $index => $productPurchase)
+            {
+                $productPurchases[$index]['purchase_id']=$purchase->getKey();
+            }
+            
+            // batch insert instead of individual insert in loop is more effecient
+            ProductPurchase::insert($productPurchases);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Handle the exception and return an error response
+            return response()->json(['error'=>__('message.error.create',['reason'=>$e->getMessage()])]);
         }
-        // batch insert instead of individual insert in loop is more effecient
-        ProductPurchase::insert($productPurchases);
-
-        // Update the Purchase record with the total amount and tax amount
-        $data->update([
-            'purchase_sub_total' => $totalAmount,
-            'purchase_tax'=>$totalTax
-        ]);
         return response()->json(['response'=>__('message.create',['name'=>'purchase'])]);
     }
 
@@ -132,8 +165,8 @@ class PurchaseController extends Controller
     public function show()
     {
         // Generate a list of active products as a Select object and return it as a JSON response
-        $product_list=Select::instance()->product_list('','active');
-        return response()->json($product_list);
+        $product=Select::instance()->product_list('','active');
+        return response()->json(compact('product'));
     }
 
 
@@ -148,10 +181,12 @@ class PurchaseController extends Controller
         // Get the selected product and quantity (if provided) from the row data
         $product_id=$row?$row->product_id:'';
         $quantity=$row?$row->quantity:'';
+        $discount=$row?$row->discount:'';
         // Generate a list of products as a Select object
         $select_menu=Select::instance()->product_list($product_id);
+        $element='purchase';
         //render into interactive html
-        $product_details =view('productlist-select',compact('select_menu','count','quantity','product_id'))->render();
+        $product_details =view('productlist-select',compact('select_menu','count','quantity','product_id','element','discount'))->render();
         return 	$product_details;
     }
 
@@ -199,45 +234,89 @@ class PurchaseController extends Controller
                 'purchase_date' => ['required', 'date','before:tomorrow'],
                 'payment_status'=>['required'],
             ]);
+            DB::beginTransaction();
 
-            // Delete existing product purchases
-            $purchase->product_purchases->each->delete();
+            try {
+                    $purchase_id=$purchase->getKey();
 
-            // Update product quantity for previously purchased products
-            foreach ($request->hidden_product_id as $index => $hidden_product_id) {
-                $previous_quantity = $request->$hidden_quantity[$index];
-                $product_details = Product::find($hidden_product_id);
-                if ($product_details) {
-                    $real_quantity = $product_details->product_quantity - $previous_quantity;
-                    // purchase return reduces available quantity so update it
-                    $product_details->update(['product_quantity' => $real_quantity]);
-                }
+                    $old_purchases=ProductPurchase::where('purchase_id',$purchase_id)
+                            ->get();
+
+                    $old_products=$old_purchases->pluck('product_id');
+                    $new_products=$request->product_id;
+                    $deleted_products=$old_products->diff($new_products);
+
+                    // Delete product purchases for deleted products
+                    if ($deleted_products->count() > 0) {
+                        ProductPurchase::where('purchase_id', $purchase_id)
+                            ->whereIn('product_id', $deleted_products)
+                            ->delete();
+                    }
+                    // Update product quantity for previously purchased products
+                    foreach ($old_purchases as $old_purchase) {
+                        $previous_quantity = $old_purchase->quantity;
+                        $product_id=$old_purchase->product_id;
+                        $product_details = Product::find($product_id);
+                        if ($product_details) {
+                            $real_quantity = $product_details->product_quantity - $previous_quantity;
+                            // purchase return reduces available quantity so update it
+                            $product_details->update(['product_quantity' => $real_quantity]);
+                        }
+                    }
+
+                    $total_quantities=[];
+                    foreach ($request->product_id as $index => $productId)
+                    {
+                        $quantity = $request->quantity[$index];
+                        $discount=$request->discount[$index];
+                        if(!isset($total_quantities[$productId]))
+                            $total_quantities[$productId]=0;
+                        $total_quantities[$productId]+=$quantity;
+                        if(!isset($total_discounts[$productId]))
+                            $total_discounts[$productId]=0;
+                        $total_discounts[$productId]+=$discount;
+                    }
+                    $totalAmount = 0;
+                    $totalTax = 0;
+                    $productPurchases = [];
+                    // Create new product purchases
+                    foreach ($total_quantities as $productId=>$quantity)
+                    {
+                        $product =Product::find($productId);
+                        $price = $product->product_base_price;
+                        $taxPercentage = $product->product_tax;
+                        $discount=$total_discounts[$productId];
+                        $basePrice = ($price-$discount) * $quantity;
+                        $taxAmount = ($basePrice / 100) * $taxPercentage;
+                        $totalTax += $taxAmount;
+                        $totalAmount += $basePrice;
+                        $productPurchases[]=['purchase_id'=>$purchase_id,
+                                            'product_id'=>$productId,
+                                            'quantity'=> $quantity,
+                                            'price'=>$price,
+                                            'tax'=>	$taxAmount,
+                                            'discount'=>$discount
+                                            ];
+                        $product->increment('product_quantity', $quantity);
+                    }
+
+                    foreach($productPurchases as $index=>$productPurchase){
+                        $product_id=$productPurchase['product_id'];
+                        ProductPurchase::updateOrCreate(
+                            ['purchase_id' => $purchase_id,'product_id'=>$product_id], // attributes to search for
+                            $productPurchase // attributes to update or create
+                        );
+                    }
+                    $value = ["purchase_sub_total" => $totalAmount,
+                    'purchase_discount'=>collect($total_discounts)->sum(),
+                    'purchase_tax'=>$totalTax];
+                    DB::commit();
             }
-            $totalAmount = 0;
-            $totalTax = 0;
-            $productPurchases = [];
-            // Create new product purchases
-            foreach ($request->product_id as $index => $productId)
-            {
-                $product =Product::find($productId);
-                $quantity = $request->quantity[$index];
-                $price = $product->product_base_price;
-                $taxPercentage = $product->product_tax;
-                $basePrice = $price * $quantity;
-                $taxAmount = ($basePrice / 100) * $taxPercentage;
-                $totalTax += $taxAmount;
-                $totalAmount += $basePrice;
-                $productPurchases[]=['purchase_id'=>$purchase->purchase_id,
-                                    'product_id'=>$productId,
-                                    'quantity'=> $quantity,
-                                    'price'=>$price,
-                                    'tax'=>	$taxAmount
-                                    ];
-                $product->increment('product_quantity', $quantity);
+            catch (\Exception $e) {
+                DB::rollBack();
+                // Handle the exception and return an error response
+                return response()->json(['error'=>__('message.error.update',['reason'=>$e->getMessage()])]);
             }
-            // batch insert instead of individual insert in loop is more effecient
-            ProductPurchase::insert($productPurchases);
-            $value = ["purchase_sub_total" => $totalAmount,'purchase_tax'=>$totalTax];
         }
             // Update purchase data
             $purchase->update(array_merge($request->all(),$value));
@@ -252,8 +331,24 @@ class PurchaseController extends Controller
         DB::beginTransaction();
 
         try {
+
+            $purchase_id=$purchase->getKey();
+            $old_purchases=ProductPurchase::where('purchase_id',$purchase_id)
+                    ->get();
+            // Update product quantity for previously purchased products
+            foreach ($old_purchases as $old_purchase) {
+                $previous_quantity = $old_purchase->quantity;
+                $product_id=$old_purchase->product_id;
+                $product_details = Product::find($product_id);
+                if ($product_details) {
+                    $real_quantity = $product_details->product_quantity - $previous_quantity;
+                    // purchase return reduces available quantity so update it
+                    $product_details->update(['product_quantity' => $real_quantity]);
+                }
+            }
+
             //delete related pivot table data to avoid foreign id constraints
-            $purchase->product_purchases->each->delete();
+            $purchase->product_purchases()->delete();
             // Delete the purchase data
             $purchase->delete();
             // Commit the transaction if everything is good
@@ -265,6 +360,54 @@ class PurchaseController extends Controller
             DB::rollBack();
               // Handle the exception and return an error response
               return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);
+        }
+    }
+
+
+
+
+    // function to download database data as csv file
+    public function uploadCSV(Request $request)
+    {
+        // validate the file
+        $validated = $request->validate([
+            'csv' => 'required|mimes:csv,txt'
+        ]);
+
+            //get the csv file
+        if ($request->hasFile('csv')) {
+            $csv = $request->file('csv');
+
+            //get the csv data and convert it into array
+            $csv_data = array_map('str_getcsv', file($csv));
+            //get the header file from the csv
+            $header=$csv_data[0];
+            //getting the primary key name of the model
+            $primary_key=(new Purchase)->getKeyName();
+
+             // remove the first row from $csv_data since it is the header
+            array_shift($csv_data);
+
+            //create a key value pair from headers and its value
+            array_walk($csv_data , function(&$row) use ($header) {
+              $row = array_combine($header, $row);
+            });
+
+            //remove the primary key combination of values
+            foreach($csv_data as $index=>$data){
+                unset($csv_data[$index][$primary_key]);
+            }
+
+            echo'<pre>';
+            print_r($csv_data);
+            return;
+            //Mass insert for performance
+               Purchase::insert($csv_data);
+               if ($request->ajax()) {
+                return response()->json(['response'=>__('message.upload',['name'=>'Purchase'])]);
+               }
+
+
         }
     }
 }

@@ -8,8 +8,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
@@ -26,6 +29,8 @@ class User extends Authenticatable
     protected $casts = ['created_at' => 'datetime'];
 
     protected $dates = ['created_at'];
+
+    protected $rememberTokenName = 'remember_token';
 
 
     public function setPasswordAttribute($password)
@@ -50,23 +55,26 @@ class User extends Authenticatable
     }
 
     function is_user(){
-        return strtolower($this->user_type)=='user' ? true : false;
+        return strtolower($this->user_type)=='user';
     }
 
     function is_active(){
-        return $this->user_status=='active' ? true : false;
+        return strtolower($this->user_status)=='active';
 	}
 
 	function is_admin()	{
-        return in_array(strtolower($this->user_type), ['owner', 'admin', 'master']) ? true : false;
+        return in_array(strtolower($this->user_type), ['owner', 'admin', 'master']);
 	}
 
     function is_master()	{
-        return in_array(strtolower($this->user_type), ['master']) ? true : false;
+        return in_array(strtolower($this->user_type), ['master']);
 	}
 
-    function is_same_user($data)	{
-        return $data==$this->id ? true : false;
+    function is_same_user($data){
+        if ($data instanceof Model) {
+            return $this->is($data);
+        }
+        return $data==$this->id;
     }
 
     public function isAdmin()
@@ -76,16 +84,25 @@ class User extends Authenticatable
 
 
     public function getProfileImageAttribute($value){
-            // image is a remote url return it
+        // image is a remote url return it
         if (filter_var($value, FILTER_VALIDATE_URL)) {
             return $value;
+        } 
+        else {
+            $url_parts = parse_url($value);
+            if (isset($url_parts['scheme']) && isset($url_parts['host'])) {
+                return $value;
+            } 
+            elseif (!$value || !Storage::exists($value)) {
+                // return a default image if the file does not exist
+                return Storage::url('user_profile.png');
+            } 
+            else {
+                // return the URL to the file using the storage facade
+                return Storage::url($value);
+            }
         }
-        elseif(is_dir(config('app.user_images_path').$value)
-        ||  !file_exists(config('app.user_images_path').$value))
-        //retun the base directory for user images plus image name
-                return config('app.user_images_url').'user_profile.png';
-        else
-                return config('app.user_images_url').$value;
+
     }
 
 }

@@ -10,7 +10,7 @@ class ProductSale extends Model
     use HasFactory;
     protected $primaryKey='product_sales_id';
 
-	protected $fillable = ['sale_id','tax','price','product_id','quantity'];
+	protected $fillable = ['sale_id','tax','price','product_id','quantity','discount'];
 
     public $timestamps = false;
 

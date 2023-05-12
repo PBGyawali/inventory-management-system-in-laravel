@@ -8,10 +8,13 @@ use App\Models\CompanyInfo;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Rules\UniqueSingularOrPlural;
+
 class CategoryController extends Controller
 {
     public $companyInfo=[];
-    
+
 
     public function __construct(Request $request)
     {
@@ -26,7 +29,7 @@ class CategoryController extends Controller
             return DataTables::of($data)
                 ->addColumn('action', function($data){
                     // primary key of the row
-                    $id=$data->category_id;
+                    $id=$data->getKey();
                     // status of the row
                     $status=$data->category_status;
                     // data to display on modal, tables
@@ -36,7 +39,7 @@ class CategoryController extends Controller
                     // button class of change status button
                     $status_class=$status=="active"?"danger":"success";
                     // optional button to display
-                    $buttons=[];
+                    $buttons=[auth()->user()->is_admin()?'delete':''];
                     //render buttons from view
                     $actionBtn = view('control-buttons',compact('buttons','id','status','prefix','statusbutton','status_class'))->render();
                     return $actionBtn;
@@ -49,18 +52,21 @@ class CategoryController extends Controller
                 })
                 ->make(true);
         }
-        $info=$this->companyInfo;
-        $page='category';
-        return view('category',compact('info','page' ) );
+        
+        return view('category' );
     }
 
     public function store(Request $request)
     {
         $this->validate($request, [
-            'category_name' => ['required', 'string', 'max:255','unique:categories'],
+            'category_name' => ['required', 'string', 'max:255',
+            new UniqueSingularOrPlural('categories')
+        ],
         ]);
+
+
         Category::create($request->all());
-        return response()->json(['response'=>__('message.create',['name'=>'category'])]);       
+        return response()->json(['response'=>__('message.create',['name'=>'category'])]);
     }
 
     public function edit(Category $category)
@@ -72,41 +78,48 @@ class CategoryController extends Controller
     {
         if (!$request->hasAny('category_status')){
             $this->validate($request, [
-                'category_name' => ['required','max:255',Rule::unique('categories')->ignore($category)],
+                'category_name' => [
+                'required','max:255',
+                new UniqueSingularOrPlural('categories',$category)
+
+            ],
             ]);
         }
+
+        // Print SQL queries
+
         $category->update($request->all());
-        return response()->json(['response'=>__('message.update',['name'=>'category'])]);   
+        return response()->json(['response'=>__('message.update',['name'=>'category'])]);
     }
 
 
     /**
      * Deletes a category and its related brands from the database.
-     * 
+     *
      * @param Category $category The category to delete.
      * @return Illuminate\Http\JsonResponse A JSON response indicating whether the delete was successful or not.
      */
 
     public function destroy(Category $category)
     {
-        // start a database transaction 
+        // start a database transaction
         //  to ensure either all database changes are made or none of them.
          DB::beginTransaction();
 
         try {
             //delete related brands to avoid foreign id constraints
-            $category->brands->each->delete();
+            $category->brands()->delete();
             // Delete the category
             $category->delete();
             // Commit the transaction if everything is good
             DB::commit();
             // Return a success response
-            return response()->json(['response'=>__('message.delete',['name'=>'product'])]);            
+            return response()->json(['response'=>__('message.delete',['name'=>'product'])]);
         } catch (\Exception $e) {
             // Roll back the transaction if error occurs
             DB::rollBack();
               // Handle the exception and return an error response
-              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);           
+              return response()->json(['error'=>__('message.error.delete',['reason'=>$e->getMessage()])]);
         }
     }
 }

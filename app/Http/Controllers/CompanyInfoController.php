@@ -45,7 +45,7 @@ class CompanyInfoController extends Controller
         session(['setup' => null]);
         $company_name=$this->companyInfo->company_name;
         // Render the login view and pass the website information and page title as variables
-        return view('welcome', compact(['info','company_name','page']));
+        return view('welcome', compact(['company_name','page','info']));
     }
 
     //show first time settings page
@@ -71,7 +71,7 @@ class CompanyInfoController extends Controller
         session(['setup' =>null]);
         $timezonelist=Select::instance()->Timezone_list($info->company_timezone);
         $currencylist=Select::instance()->Currency_list($info->company_currency);
-        return view('settings',compact('info','timezonelist','currencylist'));
+        return view('settings',compact('timezonelist','currencylist'));
     }
 
     /*

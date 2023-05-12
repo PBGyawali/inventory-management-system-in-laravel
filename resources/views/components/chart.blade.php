@@ -2,7 +2,8 @@
     <div class="card shadow mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="test"></h6><!--needs to be kept as an element unless new element is added for css reasons-->
-            <h6 class="text-primary font-weight-bold m-0"><span class="label" id="label_{{$count??0}}">{{ucwords($element??'purchase')}}</span> Overview (By <span id="type_{{$count??0}}">{{$unit??'number'}}</span>)</h6>
+            <h6 class="text-primary font-weight-bold m-0">
+                    <span class="label" id="label_{{$count??0}}">{{ucwords($element??'purchase')}}</span> Overview (By <span id="type_{{$count??0}}">{{$unit??'number'}}</span>)</h6>
             <div class="dropdown no-arrow"><button class="btn btn-link btn-sm dropdown-toggle" data-toggle="dropdown" aria-expanded="false" type="button"><i class="fas fa-ellipsis-v "></i></button>
                 <div class="dropdown-menu shadow dropdown-menu-right animated--fade-in"	role="menu">
                     <p class="text-center dropdown-header">Action:</p>
@@ -32,7 +33,10 @@
                                 &quot;label&quot;:&quot;{{ucwords($element??'purchase')}}&quot;,
                                 &quot;fill&quot;:true,
                                 &quot;backgroundColor&quot;:&quot;rgba(255, 99, 132)&quot;,
-                                &quot;borderColor&quot;:&quot;#444444&quot;
+                                &quot;borderColor&quot;:&quot;#444444&quot;,
+                                &quot;hoverBackgroundColor&quot;: &quot;#555555&quot;,
+                                &quot;hoverBorderColor&quot;:&quot;#0047AB&quot;,
+                                &quot;borderWidth&quot;: 3
                             }]
                         },
                         &quot;options&quot;:{
@@ -81,10 +85,6 @@
             </div>
         </div>
     </div>
-
-
-
-
 
 
 

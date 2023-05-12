@@ -19,8 +19,8 @@ class Purchase extends Model
 
 
     protected $fillable = ['purchase_name','purchase_status','purchase_discount','purchase_date',
-    'product_base_price','purchase_tax','purchase_sub_total','payment_status',
-    'purchase_address','status'];
+    'product_base_price','purchase_tax','purchase_sub_total','payment_status','purchase_discount',
+    'purchase_address'];
 
 
     public function purchasename(): Attribute
@@ -49,12 +49,17 @@ class Purchase extends Model
         return $this->hasMany(ProductPurchase::class,'purchase_id','purchase_id');
     }
 
+    public function supplier()
+    {
+        return $this->hasMany(Supplier::class,'purchase_name','supplier_name');
+    }
+
 
 
     protected static function booted()
     {
         static::creating(function ($data) {
-            $data->user_id = auth()->user()->id;
+            $data->user_id = auth()->id();
 
         });
     }

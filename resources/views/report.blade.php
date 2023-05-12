@@ -55,9 +55,9 @@
                         </div>
                     </div>
                 </div>
-            </div>       
+            </div>
 		@include('page-footer',['company_name'=>$info->company_name])
 <script type="text/javascript" src="<?php echo env('JS_URL')?>jquery.easing.min.js"></script>
 <script type="text/javascript" src="<?php echo env('JS_URL')?>theme.js"></script>
-@include('layouts.footer')
+@include('layouts.footer_script')
 <script src= "<?php echo env('JS_URL') .'progressbar_bootstrap.js'?>"></script>

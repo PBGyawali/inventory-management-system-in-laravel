@@ -10,16 +10,7 @@
                 <div class="card-body">
                     <div class="row">
                     	<div class="col-sm-12 table-responsive">
-                    		<table id="table" class="table table-bordered table-striped">
-                    			<thead>
-									<tr>
-										<th class="unit_id">ID</th>
-										<th class="unit_name">Unit Name</th>
-										<th class="unit_status">Status</th>
-										<th class="action">Action</th>
-									</tr>
-								</thead>
-                    		</table>
+                            @include("table",['headers'=>['unit_id',"unit_name","unit_status"]])
                     	</div>
                     </div>
                 </div>
@@ -33,7 +24,8 @@
 	<div id="Modal" class="modal fade" data-backdrop="static">
   	<div class="modal-dialog">
     	<form method="post" id="form" class="form"  action="<?php echo route('unit')?>">
-      		<div class="modal-content">
+            @csrf
+            <div class="modal-content">
         		<div class="modal-header">
           			<h4 class="modal-title" id="modal_title"><i class="fa fa-plus"></i>Add unit</h4>
           			<button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -59,12 +51,7 @@
 </div>
 </div>
 @include('page-footer',['company_name'=>$info->company_name])
-@include('layouts.footer')
-<script>
-	function update(data){
-        $('#unit_name').val(data.unit_name);
-    }
-</script>
+@include('layouts.footer_script')
 
 
 

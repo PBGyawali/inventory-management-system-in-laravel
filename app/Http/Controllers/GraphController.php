@@ -22,7 +22,7 @@ class GraphController extends Controller
     }
     public function index(Request $request)
     {
-        $info=$this->companyInfo;
+        
         //data for all type of categories
         $categoryValues=$this->categoryvalue(true);
         $category= $categoryValues['labels'];
@@ -41,8 +41,8 @@ class GraphController extends Controller
         $fullmonthvalue_sale_revenue=$this->getfullmonthvalue('sale','revenue');
         $monthvalue_purchase_revenue=$this->getmonthvalue('purchase','revenue');
         $fullmonthvalue_purchase_revenue=$this->getfullmonthvalue('purchase','revenue');
-        $page='graph';
-        return view('graph',compact('info','page',
+ 
+        return view('graph',compact(
          'fullmonthvalue','fullmonth','month','monthvalue',
          'category','categoryvalue','allcategory','allcategoryvalue',
         'monthvalue_purchase','fullmonthvalue_purchase',
